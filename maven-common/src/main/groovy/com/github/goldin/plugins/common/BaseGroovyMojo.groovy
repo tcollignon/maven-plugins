@@ -1,6 +1,5 @@
 package com.github.goldin.plugins.common
 
-import static com.github.goldin.plugins.common.ConversionUtils.*
 import static com.github.goldin.plugins.common.GMojoUtils.*
 import org.apache.ivy.util.Message
 import org.apache.tools.ant.DefaultLogger
@@ -16,10 +15,6 @@ import org.codehaus.gmaven.mojo.GroovyMojo
 import org.gcontracts.annotations.Ensures
 import org.gcontracts.annotations.Requires
 import org.slf4j.LoggerFactory
-import org.sonatype.aether.RepositorySystem
-import org.sonatype.aether.RepositorySystemSession
-import org.sonatype.aether.repository.RemoteRepository
-import org.sonatype.aether.resolution.ArtifactRequest
 import org.springframework.util.ReflectionUtils
 import java.lang.reflect.Field
 import java.lang.reflect.Modifier
@@ -49,22 +44,8 @@ abstract class BaseGroovyMojo extends GroovyMojo
     @Parameter
     private String runIf
 
-    /**
-     * Aether components:
-     * http://www.sonatype.org/aether/
-     * http://eclipse.org/aether/
-     * https://docs.sonatype.org/display/AETHER/Home
-     * http://aether.sonatype.org/using-aether-in-maven-plugins.html
-     */
-
     @Component
-    RepositorySystem repoSystem
-
-    @Parameter ( defaultValue = '${repositorySystemSession}', readonly = true )
-    RepositorySystemSession repoSession
-
-    @Parameter ( defaultValue = '${project.remoteProjectRepositories}', readonly = true )
-    List<RemoteRepository> remoteRepos
+    ICompatibilityProvider compatibilityProvider
 
 
     /**
@@ -85,11 +66,10 @@ abstract class BaseGroovyMojo extends GroovyMojo
 
         if ( ! artifact.file )
         {
-            final request = new ArtifactRequest( toAetherArtifact( artifact ), remoteRepos, null )
             try
             {
                 if ( verbose ) { log.info( "Resolving [$artifact]: optional [$artifact.optional], failOnError [$failOnError]" ) }
-                artifact.file = repoSystem.resolveArtifact( repoSession, request ).artifact?.file
+                artifact.file = compatibilityProvider.resolveFile(artifact)
                 if ( verbose ) { log.info( "Resolving [$artifact]: done - [$artifact.file]" ) }
             }
             catch ( e )
